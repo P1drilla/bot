@@ -1,0 +1,31 @@
+[Unit]
+Description=Yadreno VPN Telegram bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/YadrenoVPN
+ExecStart=/usr/bin/python3 main.py
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+
+[Unit]
+Description=Yadreno VPN Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+# Путь по умолчанию, если вы устанавливали по инструкции
+WorkingDirectory=/root/YadrenoVPN
+ExecStart=/usr/bin/python3 main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
