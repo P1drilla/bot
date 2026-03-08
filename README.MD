@@ -70,8 +70,8 @@ sudo apt update && sudo apt install -y python3-pip git
 ### Шаг 2: Клонирование репозитория
 Скачайте проект с GitHub:
 ```bash
-git clone https://github.com/plushkinv/YadrenoVPN.git
-cd YadrenoVPN
+git clone https://github.com/P1drilla/bot
+cd bot
 ```
 
 ### Шаг 3: Установка зависимостей Python
