@@ -35,7 +35,7 @@ from bot.keyboards.admin import (
     users_menu_kb, users_list_kb, user_view_kb, user_ban_confirm_kb,
     key_view_kb, add_key_server_kb, add_key_inbound_kb, add_key_tariffs_kb,
     add_key_confirm_kb, users_input_cancel_kb, key_action_cancel_kb,
-    back_and_home_kb, home_only_kb
+    back_and_home_kb, home_only_kb, key_delete_confirm_kb
 )
 from bot.services.vpn_api import (
     get_client_from_server_data, VPNAPIError, format_traffic
@@ -748,6 +748,103 @@ async def show_key_view(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("admin_key_delete:"))
+async def request_key_delete(callback: CallbackQuery, state: FSMContext):
+    """Запрос подтверждения удаления ключа."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+    
+    try:
+        key_id = int(callback.data.split(":")[1])
+    except (ValueError, IndexError):
+        await callback.answer("⚠️ Некорректные данные", show_alert=True)
+        return
+    
+    key = await get_vpn_key_by_id(key_id)
+    if not key:
+        await callback.answer("Ключ не найден", show_alert=True)
+        return
+    
+    await state.set_state(AdminStates.key_delete_confirm)
+    await state.update_data(delete_key_id=key_id)
+    
+    # Формируем название ключа согласно ТЗ
+    if key.get('custom_name'):
+        key_name = key['custom_name']
+    else:
+        # Формат: первые_4_символа...последние_4_символа от client_uuid
+        uuid = key.get('client_uuid') or ''
+        if len(uuid) >= 8:
+            key_name = f"{uuid[:4]}...{uuid[-4:]}"
+        else:
+            key_name = uuid or f"Ключ #{key_id}"
+    
+    user_telegram_id = key.get('user_telegram_id') or key.get('telegram_id')
+    
+    await callback.message.edit_text(
+        f"⚠️ *Подтверждение удаления*\n\n"
+        f"Вы уверены, что хотите удалить ключ `{escape_md(key_name)}`?\n\n"
+        f"⚠️ *Внимание:* Это действие удалит ключ с сервера!",
+        reply_markup=key_delete_confirm_kb(key_id, user_telegram_id),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("admin_key_delete_confirm:"))
+async def confirm_key_delete(callback: CallbackQuery, state: FSMContext):
+    """Подтверждение и удаление ключа."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+    
+    try:
+        key_id = int(callback.data.split(":")[1])
+    except (ValueError, IndexError):
+        await callback.answer("⚠️ Некорректные данные", show_alert=True)
+        return
+    
+    key = await get_vpn_key_by_id(key_id)
+    if not key:
+        await callback.answer("Ключ не найден", show_alert=True)
+        return
+    
+    # Удаляем ключ с сервера
+    try:
+        server = await get_server_by_id(key['server_id'])
+        client = get_client_from_server_data(server)
+        await client.delete_client(key['panel_inbound_id'], key['client_uuid'])
+        
+        # Удаляем из БД
+        from database.requests import delete_vpn_key
+        await delete_vpn_key(key_id)
+        
+        await callback.answer("✅ Ключ удалён!", show_alert=True)
+        
+        # Возвращаемся к просмотру пользователя
+        await state.set_state(AdminStates.user_view)
+        await state.update_data(current_user_telegram_id=key['user_telegram_id'])
+        
+        user = await get_user_by_telegram_id(key['user_telegram_id'])
+        if user:
+            vpn_keys = await get_user_vpn_keys(user['id'])
+            is_banned = user.get('is_banned', False)
+            
+            text, keyboard = await _format_user_card(user)
+            await callback.message.edit_text(
+                text,
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+        
+    except VPNAPIError as e:
+        await callback.answer(f"❌ Ошибка удаления ключа: {e}", show_alert=True)
+    except Exception as e:
+        logger.error(f"Ошибка удаления ключа {key_id}: {e}")
+        await callback.answer("❌ Ошибка удаления ключа", show_alert=True)
+
+
 @router.callback_query(F.data.startswith("admin_key_extend:"))
 async def start_key_extend(callback: CallbackQuery, state: FSMContext):
     """Начало продления ключа."""
@@ -890,8 +987,7 @@ async def start_change_traffic_limit(callback: CallbackQuery, state: FSMContext)
     await state.set_state(AdminStates.key_change_traffic)
     await state.update_data(current_key_id=key_id)
     
-    user_telegram_id = key.get('telegram_id')
-    await state.update_data(current_user_telegram_id=user_telegram_id)
+    user_telegram_id = key.get('user_telegram_id') or key.get('telegram_id')
     
     await callback.message.edit_text(
         "📊 *Изменение лимита трафика*\n\n"

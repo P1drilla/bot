@@ -1385,6 +1385,28 @@ async def update_vpn_key_connection(
         return success
 
 
+async def delete_vpn_key(key_id: int) -> bool:
+    """
+    Удаляет VPN-ключ из базы данных.
+    
+    Args:
+        key_id: ID VPN-ключа для удаления
+    
+    Returns:
+        bool: True если удаление прошло успешно
+    """
+    try:
+        async with get_db() as conn:
+            cursor = await conn.execute("DELETE FROM vpn_keys WHERE id = ?", (key_id,))
+            success = cursor.rowcount > 0
+            if success:
+                logger.info(f"VPN-ключ {key_id} удалён из базы данных")
+            return success
+    except Exception as e:
+        logger.error(f"Ошибка удаления VPN-ключа {key_id}: {e}")
+        return False
+
+
 # ============================================================================
 # СТАТИСТИКА ДЛЯ ЕЖЕДНЕВНЫХ ОТЧЁТОВ
 # ============================================================================

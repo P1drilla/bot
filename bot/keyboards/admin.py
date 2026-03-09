@@ -1550,6 +1550,14 @@ def key_view_kb(key_id: int, user_telegram_id: int) -> InlineKeyboardMarkup:
         )
     )
     
+    # Удалить ключ
+    builder.row(
+        InlineKeyboardButton(
+            text="🗑️ Удалить ключ",
+            callback_data=f"admin_key_delete:{key_id}"
+        )
+    )
+    
     # Навигация
     builder.row(
         back_button(f"admin_user_view:{user_telegram_id}"),
@@ -1692,6 +1700,32 @@ def key_action_cancel_kb(key_id: int, user_telegram_id: int) -> InlineKeyboardMa
     builder.row(
         InlineKeyboardButton(text="❌ Отмена", callback_data=f"admin_key_view:{key_id}")
     )
+    return builder.as_markup()
+
+
+def key_delete_confirm_kb(key_id: int, user_telegram_id: int) -> InlineKeyboardMarkup:
+    """
+    Клавиатура подтверждения удаления ключа.
+    
+    Args:
+        key_id: ID ключа
+        user_telegram_id: Telegram ID владельца (для возврата)
+    """
+    builder = InlineKeyboardBuilder()
+    
+    builder.row(
+        InlineKeyboardButton(
+            text="✅ Да, удалить",
+            callback_data=f"admin_key_delete_confirm:{key_id}"
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="❌ Отмена",
+            callback_data=f"admin_key_view:{key_id}"
+        )
+    )
+    
     return builder.as_markup()
 
 

@@ -100,6 +100,7 @@ class AdminStates(StatesGroup):
     key_view = State()               # Просмотр конкретного ключа
     key_extend_days = State()        # Ввод количества дней для продления
     key_change_traffic = State()     # Ввод нового лимита трафика
+    key_delete_confirm = State()     # Подтверждение удаления ключа
     
     # ========== Добавление ключа администратором ==========
     add_key_server = State()         # Выбор сервера
