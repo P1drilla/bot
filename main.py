@@ -10,6 +10,7 @@ import signal
 import sys
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.exceptions import TelegramBadRequest
 
 from config import BOT_TOKEN
 from database.migrations import run_migrations
