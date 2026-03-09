@@ -1,4 +1,4 @@
-# 🌐 Yadreno VPN - Руководство пользователя
+# 🌐 VPN - Руководство пользователя
 
 Telegram-бот для управления VPN-сервером на базе 3X-UI с приёмом платежей в криптовалюте и Telegram Stars.
 
@@ -108,9 +108,9 @@ python3 main.py
    ```bash
    cp yadreno-vpn.service /etc/systemd/system/
    ```
-2. (Опционально) Если вы установили бота не в `/root/YadrenoVPN`, отредактируйте путь в файле:
+2. (Опционально) Если вы установили бота не в `/root/bot`, отредактируйте путь в файле:
    ```bash
-   nano /etc/systemd/system/yadreno-vpn.service
+   nano /etc/systemd/system/bot
    ```
 3. Активируем и запускаем:
    ```bash
