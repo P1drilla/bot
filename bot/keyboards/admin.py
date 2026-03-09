@@ -313,7 +313,7 @@ def server_view_kb(server_id: int, is_active: bool) -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(
             text=toggle_text,
-            callback_data=f"admin_server_toggle:{server_id}"
+            callback_data=f"admin_server_toggle_active:{server_id}"
         )
     )
     
