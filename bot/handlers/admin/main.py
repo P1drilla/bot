@@ -95,11 +95,20 @@ async def show_admin_panel(callback: CallbackQuery, state: FSMContext):
     
     text = await get_admin_stats_text()
     
-    await callback.message.edit_text(
-        text,
-        reply_markup=admin_main_menu_kb(),
-        parse_mode="Markdown"
-    )
+    # Оборачиваем правку сообщения, чтобы бот не падал, если данные те же
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=admin_main_menu_kb(),
+            parse_mode="Markdown"
+        )
+    except TelegramBadRequest as e:
+        if "message is not modified" in str(e):
+            # Если данные те же, просто ничего не делаем
+            pass
+        else:
+            # Если ошибка другая — пробрасываем её дальше
+            raise e
 
 
 # ============================================================================
