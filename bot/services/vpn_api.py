@@ -14,10 +14,15 @@ import logging
 import json
 import uuid
 import time
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from config import RETRY_CONFIG
 
 logger = logging.getLogger(__name__)
+
+
+# TTL кэша (в секундах) для снижения нагрузки на панель
+SERVER_STATS_TTL = 60
+CLIENT_STATS_TTL = 60
 
 
 class VPNAPIError(Exception):
@@ -275,6 +280,16 @@ class XUIClient:
             - online: True если сервер доступен
         """
         try:
+            # Пытаемся отдать данные из кэша, чтобы не дергать панель слишком часто
+            server_id = self.server.get("id")
+            now_ts = time.time()
+            if server_id is not None:
+                cached = _server_stats_cache.get(server_id)
+                if cached:
+                    cached_ts, cached_data = cached
+                    if now_ts - cached_ts < SERVER_STATS_TTL:
+                        return cached_data
+
             inbounds = await self.get_inbounds()
             
             total_clients = 0
@@ -313,7 +328,7 @@ class XUIClient:
             except VPNAPIError:
                 pass
             
-            return {
+            result = {
                 "total_clients": total_clients,
                 "active_clients": active_clients,
                 "online_clients": await self.get_online_clients_count(),
@@ -321,6 +336,13 @@ class XUIClient:
                 "cpu_percent": cpu_percent,
                 "online": True
             }
+            
+            # Кэшируем результат, чтобы повторные запросы в течение короткого времени
+            # не создавали лишнюю нагрузку на панель
+            if server_id is not None:
+                _server_stats_cache[server_id] = (now_ts, result)
+
+            return result
             
         except VPNAPIError as e:
             logger.warning(f"Ошибка получения статистики: {e}")
@@ -513,12 +535,23 @@ class XUIClient:
             - protocol: Протокол соединения (vless, vmess и т.д.)
         """
         try:
+            # Проверяем кэш по паре (server_id, email), чтобы не дергать панель на каждый клик
+            server_id = self.server.get("id")
+            now_ts = time.time()
+            cache_key = (server_id, email)
+            if server_id is not None:
+                cached = _client_stats_cache.get(cache_key)
+                if cached:
+                    cached_ts, cached_data = cached
+                    if now_ts - cached_ts < CLIENT_STATS_TTL:
+                        return cached_data
+
             inbounds = await self.get_inbounds()
             for inbound in inbounds:
                 client_stats = inbound.get("clientStats", [])
                 for stats in client_stats:
                     if stats.get("email") == email:
-                        return {
+                        result = {
                             "up": stats.get("up", 0),
                             "down": stats.get("down", 0),
                             "total": stats.get("total", 0),
@@ -526,6 +559,12 @@ class XUIClient:
                             "remark": inbound.get("remark", ""),
                             "expiry_time": stats.get("expiryTime", 0)
                         }
+                        
+                        # Кэшируем успешный результат
+                        if server_id is not None:
+                            _client_stats_cache[cache_key] = (now_ts, result)
+
+                        return result
         except Exception as e:
             logger.warning(f"Ошибка получения статистики клиента {email}: {e}")
         return None
@@ -794,10 +833,12 @@ class XUIClient:
 
 
 # ============================================================================
-# Глобальный кэш клиентов и вспомогательные функции
+# Глобальный кэш клиентов, статистики и вспомогательные функции
 # ============================================================================
 
 _clients: Dict[int, XUIClient] = {}
+_server_stats_cache: Dict[int, Tuple[float, Dict[str, Any]]] = {}
+_client_stats_cache: Dict[Tuple[Optional[int], str], Tuple[float, Dict[str, Any]]] = {}
 
 
 def get_client_from_server_data(server: Dict[str, Any]) -> XUIClient:
