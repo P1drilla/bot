@@ -502,7 +502,7 @@ async def create_yookassa_qr_payment(
         aiohttp.ClientError: Если API недоступен
         RuntimeError: Если API вернул ошибку
     """
-    shop_id, secret_key = get_yookassa_credentials()
+    shop_id, secret_key = await get_yookassa_credentials()
     if not shop_id or not secret_key:
         raise ValueError("ЮКасса: не настроены shop_id или secret_key")
 
