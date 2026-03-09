@@ -617,7 +617,7 @@ async def check_yookassa_payment_status(yookassa_payment_id: str) -> str:
         aiohttp.ClientError: Если API недоступен
         RuntimeError: Если API вернул ошибку
     """
-    shop_id, secret_key = get_yookassa_credentials()
+    shop_id, secret_key = await get_yookassa_credentials()
     if not shop_id or not secret_key:
         raise ValueError("ЮКасса: не настроены shop_id или secret_key")
 

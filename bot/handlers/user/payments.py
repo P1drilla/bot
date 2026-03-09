@@ -767,12 +767,21 @@ async def pay_cards_select_tariff(callback: CallbackQuery):
         await callback.answer()
         return
     
-    await callback.message.edit_text(
+    text = (
         "💳 *Оплата картой*\n\n"
-        "Выберите тариф:",
-        reply_markup=tariff_select_kb(tariffs, order_id=order_id, is_cards=True),
-        parse_mode="Markdown"
+        "Выберите тариф:"
     )
+    kb = tariff_select_kb(tariffs, order_id=order_id, is_cards=True)
+
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(text, reply_markup=kb, parse_mode="Markdown")
+    
     await callback.answer()
 
 @router.callback_query(F.data.startswith("cards_pay:"))
@@ -999,13 +1008,22 @@ async def pay_qr_select_tariff(callback: CallbackQuery):
         await callback.answer()
         return
 
-    await callback.message.edit_text(
+    text = (
         "📱 *QR-оплата (Карта/СБП)*\n\n"
         "Выберите тариф:\n\n"
-        "_Оплата через ЮКассу — поддерживает банковские карты и СБП._",
-        reply_markup=qr_tariff_select_kb(rub_tariffs),
-        parse_mode="Markdown"
+        "_Оплата через ЮКассу — поддерживает банковские карты и СБП._"
     )
+    kb = qr_tariff_select_kb(rub_tariffs)
+
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(text, reply_markup=kb, parse_mode="Markdown")
+    
     await callback.answer()
 
 

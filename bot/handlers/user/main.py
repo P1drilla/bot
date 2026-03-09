@@ -1462,12 +1462,21 @@ async def pay_stars_select_tariff(callback: CallbackQuery):
         await callback.answer()
         return
     
-    await callback.message.edit_text(
+    text = (
         "⭐ *Оплата звёздами*\n\n"
-        "Выберите тариф:",
-        reply_markup=tariff_select_kb(tariffs, order_id=order_id),
-        parse_mode="Markdown"
+        "Выберите тариф:"
     )
+    kb = tariff_select_kb(tariffs, order_id=order_id)
+
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+    except Exception:
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(text, reply_markup=kb, parse_mode="Markdown")
+    
     await callback.answer()
 
 
