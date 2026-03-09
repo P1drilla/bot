@@ -39,6 +39,9 @@ class AdminStates(StatesGroup):
     # ========== Удаление сервера ==========
     delete_server_confirm = State()  # Подтверждение удаления
     
+    # ========== Переключение активности сервера ==========
+    toggle_server_active_confirm = State()  # Подтверждение переключения активности
+    
     # ========== Раздел «Оплаты» ==========
     payments_menu = State()          # Главный экран оплат
     cards_setup_token = State()      # Ввод токена ЮКасса
